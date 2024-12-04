@@ -24,5 +24,5 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/member-dashboard');
+  redirect('/member-dashboard/records');
 }
