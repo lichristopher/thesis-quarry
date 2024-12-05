@@ -46,6 +46,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import Link from 'next/link';
 
 interface Transaction {
   id: number;
@@ -88,11 +89,16 @@ export default function TablePage() {
   const [uniqueVolumes, setUniqueVolumes] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [totalAmount, setTotalAmount] = useState<number>(0);
+  const [pendingAmount, setPendingAmount] = useState<number>(0);
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [availableTruckers, setAvailableTruckers] = useState<string[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     fetchTransactions();
     fetchUserSession();
+    fetchTruckerNames();
   }, []);
 
   const fetchUserSession = async () => {
@@ -129,6 +135,8 @@ export default function TablePage() {
 
     setTransactions(data || []);
     setFilteredTransactions(data || []);
+    setTotalAmount(calculateTotal(data || []));
+    setPendingAmount(calculatePendingTotal(data || []));
     calculateDailySales(data || []);
     getUniqueTruckers(data || []);
     getUniqueVolumes(data || []);
@@ -171,6 +179,24 @@ export default function TablePage() {
     setDailySales(dailySalesData);
   };
 
+  const calculateTotal = (transactions: Transaction[]) => {
+    return transactions.reduce((sum, transaction) => {
+      if (transaction.payment_status === 'PAID') {
+        return sum + transaction.price;
+      }
+      return sum;
+    }, 0);
+  };
+
+  const calculatePendingTotal = (transactions: Transaction[]) => {
+    return transactions.reduce((sum, transaction) => {
+      if (transaction.payment_status === 'PENDING') {
+        return sum + transaction.price;
+      }
+      return sum;
+    }, 0);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -188,10 +214,7 @@ export default function TablePage() {
       price: Number(formData.get('price')),
       destination: formData.get('destination') as string,
       payment_method: paymentMethod,
-      payment_status:
-        paymentMethod === 'CASH'
-          ? 'PAID'
-          : (formData.get('payment_status') as string),
+      payment_status: paymentMethod === 'CASH' ? 'PAID' : 'PENDING',
     };
 
     const supabase = createClient();
@@ -231,7 +254,7 @@ export default function TablePage() {
     if (value === 'CASH') {
       setPaymentStatus('PAID');
     } else {
-      setPaymentStatus('');
+      setPaymentStatus('PENDING');
     }
   };
 
@@ -273,8 +296,14 @@ export default function TablePage() {
     if (selectedVolume !== 'all') {
       filtered = filtered.filter((t) => t.unit_volume === selectedVolume);
     }
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter((t) => t.payment_status === selectedStatus);
+    }
 
     setFilteredTransactions(filtered);
+    setTotalAmount(calculateTotal(filtered));
+    setPendingAmount(calculatePendingTotal(filtered));
+    calculateDailySales(filtered);
   };
 
   const handleTruckerFilter = (truckerName: string) => {
@@ -293,8 +322,14 @@ export default function TablePage() {
     if (endDate) {
       filtered = filtered.filter((t) => t.date <= endDate);
     }
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter((t) => t.payment_status === selectedStatus);
+    }
 
     setFilteredTransactions(filtered);
+    setTotalAmount(calculateTotal(filtered));
+    setPendingAmount(calculatePendingTotal(filtered));
+    calculateDailySales(filtered);
   };
 
   const handleVolumeFilter = (volume: string) => {
@@ -313,8 +348,42 @@ export default function TablePage() {
     if (endDate) {
       filtered = filtered.filter((t) => t.date <= endDate);
     }
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter((t) => t.payment_status === selectedStatus);
+    }
 
     setFilteredTransactions(filtered);
+    setTotalAmount(calculateTotal(filtered));
+    setPendingAmount(calculatePendingTotal(filtered));
+    calculateDailySales(filtered);
+  };
+
+  const handleStatusFilter = (status: string) => {
+    setSelectedStatus(status);
+    let filtered = transactions;
+
+    if (status !== 'all') {
+      filtered = filtered.filter((t) => t.payment_status === status);
+    }
+
+    // Apply other existing filters
+    if (selectedTrucker !== 'all') {
+      filtered = filtered.filter((t) => t.trucker_name === selectedTrucker);
+    }
+    if (selectedVolume !== 'all') {
+      filtered = filtered.filter((t) => t.unit_volume === selectedVolume);
+    }
+    if (startDate) {
+      filtered = filtered.filter((t) => t.date >= startDate);
+    }
+    if (endDate) {
+      filtered = filtered.filter((t) => t.date <= endDate);
+    }
+
+    setFilteredTransactions(filtered);
+    setTotalAmount(calculateTotal(filtered));
+    setPendingAmount(calculatePendingTotal(filtered));
+    calculateDailySales(filtered);
   };
 
   const handlePrint = () => {
@@ -343,6 +412,25 @@ export default function TablePage() {
     } else {
       fetchTransactions();
     }
+  };
+
+  const fetchTruckerNames = async () => {
+    const supabase = createClient();
+    const { data: profiles, error } = await supabase
+      .from('profiles')
+      .select('trucker_name')
+      .not('trucker_name', 'is', null);
+
+    if (error) {
+      console.error('Error fetching trucker names:', error);
+      return;
+    }
+
+    const truckerNames = profiles
+      .map((profile) => profile.trucker_name)
+      .filter((name): name is string => !!name);
+
+    setAvailableTruckers(truckerNames);
   };
 
   return (
@@ -397,13 +485,23 @@ export default function TablePage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="trucker_name">Trucker Name</Label>
-                    <Input
-                      id="trucker_name"
+                    <Select
                       name="trucker_name"
                       value={truckerName}
-                      readOnly
+                      onValueChange={setTruckerName}
                       required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select trucker name" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTruckers.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="plate_number">Plate Number</Label>
@@ -470,7 +568,9 @@ export default function TablePage() {
                       value={paymentStatus}
                       onValueChange={setPaymentStatus}
                       required
-                      disabled={paymentMethod === 'CASH'}
+                      disabled={
+                        paymentMethod === 'CASH' || paymentMethod === 'PO'
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select payment status" />
@@ -499,6 +599,30 @@ export default function TablePage() {
           </Dialog>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex justify-end gap-4">
+            <Card className="w-[400px]">
+              <CardContent className="flex justify-between items-center p-4">
+                <span className="font-semibold">Total Amount (Paid):</span>
+                <span className="text-green-600 font-bold text-lg">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'PHP',
+                  }).format(totalAmount)}
+                </span>
+              </CardContent>
+            </Card>
+            <Card className="w-[400px]">
+              <CardContent className="flex justify-between items-center p-4">
+                <span className="font-semibold">Pending Balance:</span>
+                <span className="text-yellow-600 font-bold text-lg">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'PHP',
+                  }).format(pendingAmount)}
+                </span>
+              </CardContent>
+            </Card>
+          </div>
           <div className="p-4">
             <h3 className="text-lg font-medium mb-4">
               Daily Sales (Last 7 Days)
@@ -529,11 +653,14 @@ export default function TablePage() {
             </div>
           </div>
           <div className="rounded-md border overflow-auto max-h-[600px]">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+            <div className="p-4 border-b space-y-4">
+              <div className="flex flex-col space-y-4">
+                {/* Date Range Filters */}
+                <div className="flex flex-col space-y-4">
                   <div className="flex items-center space-x-2">
-                    <Label htmlFor="startDate">From:</Label>
+                    <Label htmlFor="startDate" className="w-20">
+                      From:
+                    </Label>
                     <Input
                       type="date"
                       id="startDate"
@@ -541,11 +668,13 @@ export default function TablePage() {
                       onChange={(e) =>
                         handleDateRangeFilter(e.target.value, endDate)
                       }
-                      className="w-[160px]"
+                      className="w-[200px]"
                     />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Label htmlFor="endDate">To:</Label>
+                    <Label htmlFor="endDate" className="w-20">
+                      To:
+                    </Label>
                     <Input
                       type="date"
                       id="endDate"
@@ -553,57 +682,109 @@ export default function TablePage() {
                       onChange={(e) =>
                         handleDateRangeFilter(startDate, e.target.value)
                       }
-                      className="w-[160px]"
+                      className="w-[200px]"
                     />
                   </div>
+                </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor="truckerFilter">Filter by Trucker:</Label>
-                    <Select
-                      value={selectedTrucker}
-                      onValueChange={handleTruckerFilter}
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select trucker" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Truckers</SelectItem>
-                        {uniqueTruckers.map((trucker) => (
-                          <SelectItem key={trucker} value={trucker}>
-                            {trucker}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor="volumeFilter">Filter by Volume:</Label>
-                    <Select
-                      value={selectedVolume}
-                      onValueChange={handleVolumeFilter}
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select volume" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Volumes</SelectItem>
-                        {uniqueVolumes.map((volume) => (
-                          <SelectItem key={volume} value={volume}>
-                            {volume}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    onClick={handlePrint}
-                    variant="default"
-                    className="bg-blue-600 hover:bg-blue-700"
+                {/* Trucker Filter Row */}
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="truckerFilter" className="w-20">
+                    Trucker:
+                  </Label>
+                  <Select
+                    value={selectedTrucker}
+                    onValueChange={handleTruckerFilter}
                   >
-                    <PrinterIcon className="w-4 h-4 mr-2" />
-                    Print Filtered Results
-                  </Button>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select trucker" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Truckers</SelectItem>
+                      {uniqueTruckers.map((trucker) => (
+                        <SelectItem key={trucker} value={trucker}>
+                          {trucker}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Volume Filter Row */}
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="volumeFilter" className="w-20">
+                    Volume:
+                  </Label>
+                  <Select
+                    value={selectedVolume}
+                    onValueChange={handleVolumeFilter}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select volume" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Volumes</SelectItem>
+                      {uniqueVolumes.map((volume) => (
+                        <SelectItem key={volume} value={volume}>
+                          {volume}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status Filter Row */}
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="statusFilter" className="w-20">
+                    Status:
+                  </Label>
+                  <Select
+                    value={selectedStatus}
+                    onValueChange={handleStatusFilter}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="PAID">Paid</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Print Button Row */}
+                <div className="flex items-center">
+                  <div className="w-20"></div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handlePrint}
+                      variant="default"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <PrinterIcon className="w-4 h-4 mr-2" />
+                      Print Filtered Results
+                    </Button>
+                    <Link
+                      href={`/dashboard/records/print-dashboard?${new URLSearchParams(
+                        {
+                          startDate: startDate || '',
+                          endDate: endDate || '',
+                          trucker: selectedTrucker || '',
+                          volume: selectedVolume || '',
+                          status: selectedStatus || '',
+                        }
+                      ).toString()}`}
+                    >
+                      <Button
+                        variant="default"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <PrinterIcon className="w-4 h-4 mr-2" />
+                        Print Dashboard
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

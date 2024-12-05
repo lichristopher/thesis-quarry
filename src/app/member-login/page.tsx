@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function MemberLoginPage() {
   return (
@@ -44,6 +45,15 @@ export default function MemberLoginPage() {
               Login
             </Button>
           </form>
+          <div className="mt-4 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{' '}
+            <Link
+              href="/signup"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Sign up
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
