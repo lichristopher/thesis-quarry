@@ -40,6 +40,14 @@ export default function LoginPage() {
         <Card className="w-full max-w-xl">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-6"></div>
+            <Image
+              src="/logo.png"
+              alt="Company logo"
+              width={360}
+              height={360}
+              className="mx-auto"
+              priority
+            />
             <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access your account
