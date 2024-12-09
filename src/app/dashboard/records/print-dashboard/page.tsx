@@ -18,6 +18,9 @@ interface Transaction {
   date: string;
   price: number;
   payment_status: string;
+  trucker_name: string;
+  unit_volume: string;
+  created_at: string;
 }
 
 interface DailySales {

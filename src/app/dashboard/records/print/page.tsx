@@ -13,6 +13,7 @@ interface Transaction {
   time: string;
   unit_volume: string;
   price: number;
+  payment_status: string;
 }
 
 export default function PrintPage() {
@@ -36,12 +37,15 @@ export default function PrintPage() {
       const endDate = searchParams.get('endDate');
       const trucker = searchParams.get('trucker');
       const volume = searchParams.get('volume');
+      const status = searchParams.get('status');
 
       if (startDate) query = query.gte('date', startDate);
       if (endDate) query = query.lte('date', endDate);
       if (trucker && trucker !== 'all')
         query = query.eq('trucker_name', trucker);
       if (volume && volume !== 'all') query = query.eq('unit_volume', volume);
+      if (status && status !== 'all')
+        query = query.eq('payment_status', status);
 
       const { data, error } = await query.order('date', { ascending: true });
 
@@ -70,7 +74,7 @@ export default function PrintPage() {
   useEffect(() => {
     // Auto-print when data is loaded
     if (transactions.length > 0) {
-      window.print();
+      // window.print();
     }
   }, [transactions]);
 
@@ -106,6 +110,12 @@ export default function PrintPage() {
             <span className="font-bold">Billing To:</span>{' '}
             {searchParams.get('trucker')}
           </p>
+          <p>
+            <span className="font-bold">Status:</span>{' '}
+            {searchParams.get('status') === 'all'
+              ? 'All'
+              : searchParams.get('status') || 'All'}
+          </p>
         </div>
         <div>
           <p>
@@ -126,6 +136,7 @@ export default function PrintPage() {
             <th className="border p-2 text-left">Plate #</th>
             <th className="border p-2 text-left">Time</th>
             <th className="border p-2 text-left">Qty/Unit</th>
+            <th className="border p-2 text-left">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -144,6 +155,7 @@ export default function PrintPage() {
               <td className="border p-2">{t.plate_number}</td>
               <td className="border p-2">{t.time}</td>
               <td className="border p-2">{t.unit_volume}</td>
+              <td className="border p-2">{t.payment_status}</td>
             </tr>
           ))}
         </tbody>

@@ -22,7 +22,7 @@ interface Transaction {
   trucker_name: string;
   plate_number: string;
   time: string;
-  quantity: number;
+  unit_volume: string;
   price: number;
   destination: string;
   payment_method: string;
@@ -37,7 +37,7 @@ export default async function PurchaseOrdersPage() {
     .from('transactions')
     .select('*')
     .eq('payment_method', 'PO')
-    .order('date', { ascending: false });
+    .order('created_at', { ascending: true });
 
   if (error) {
     console.error('Error fetching transactions:', error);
@@ -50,7 +50,7 @@ export default async function PurchaseOrdersPage() {
         <CardHeader>
           <CardTitle>Purchase Order Transactions</CardTitle>
           <CardDescription>
-            A list of all purchase order transactions
+            A list of all purchase order transactionss
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,7 +63,7 @@ export default async function PurchaseOrdersPage() {
                   <TableHead>Trucker Name</TableHead>
                   <TableHead>Plate #</TableHead>
                   <TableHead>Time</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead className="text-right">Unit Volume</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead>Destination</TableHead>
                   <TableHead>Payment Method</TableHead>
@@ -81,7 +81,7 @@ export default async function PurchaseOrdersPage() {
                     <TableCell>{transaction.plate_number}</TableCell>
                     <TableCell>{transaction.time}</TableCell>
                     <TableCell className="text-right">
-                      {transaction.quantity}
+                      {transaction.unit_volume}
                     </TableCell>
                     <TableCell className="text-right">
                       {new Intl.NumberFormat('en-US', {

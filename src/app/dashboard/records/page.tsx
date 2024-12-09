@@ -393,6 +393,7 @@ export default function TablePage() {
     if (endDate) queryParams.set('endDate', endDate);
     if (selectedTrucker) queryParams.set('trucker', selectedTrucker);
     if (selectedVolume) queryParams.set('volume', selectedVolume);
+    if (selectedStatus) queryParams.set('status', selectedStatus);
 
     const printUrl = `/dashboard/records/print?${queryParams.toString()}`;
     window.open(printUrl, '_blank');
