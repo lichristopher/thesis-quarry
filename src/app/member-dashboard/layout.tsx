@@ -44,7 +44,7 @@ const Sidebar = () => {
       console.error('Error signing out:', error);
     } else {
       router.refresh();
-      router.push('/login');
+      router.push('/member-login');
     }
   };
 

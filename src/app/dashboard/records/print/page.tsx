@@ -36,12 +36,15 @@ export default function PrintPage() {
       const endDate = searchParams.get('endDate');
       const trucker = searchParams.get('trucker');
       const volume = searchParams.get('volume');
+      const status = searchParams.get('status');
 
       if (startDate) query = query.gte('date', startDate);
       if (endDate) query = query.lte('date', endDate);
       if (trucker && trucker !== 'all')
         query = query.eq('trucker_name', trucker);
       if (volume && volume !== 'all') query = query.eq('unit_volume', volume);
+      if (status && status !== 'all')
+        query = query.eq('payment_status', status);
 
       const { data, error } = await query.order('date', { ascending: true });
 

@@ -48,7 +48,6 @@ export default function CashRecordsPage() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [selectedVolume, setSelectedVolume] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedTrucker, setSelectedTrucker] = useState<string>('all');
   const [uniqueVolumes, setUniqueVolumes] = useState<string[]>([]);
   const [uniqueTruckers, setUniqueTruckers] = useState<string[]>([]);
@@ -102,9 +101,6 @@ export default function CashRecordsPage() {
     if (selectedVolume !== 'all') {
       filtered = filtered.filter((t) => t.unit_volume === selectedVolume);
     }
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter((t) => t.payment_status === selectedStatus);
-    }
     if (selectedTrucker !== 'all') {
       filtered = filtered.filter((t) => t.trucker_name === selectedTrucker);
     }
@@ -122,9 +118,6 @@ export default function CashRecordsPage() {
     if (selectedVolume !== 'all') {
       filtered = filtered.filter((t) => t.unit_volume === selectedVolume);
     }
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter((t) => t.payment_status === selectedStatus);
-    }
     if (startDate) {
       filtered = filtered.filter((t) => t.date >= startDate);
     }
@@ -141,32 +134,6 @@ export default function CashRecordsPage() {
 
     if (volume !== 'all') {
       filtered = filtered.filter((t) => t.unit_volume === volume);
-    }
-    if (selectedTrucker !== 'all') {
-      filtered = filtered.filter((t) => t.trucker_name === selectedTrucker);
-    }
-    if (startDate) {
-      filtered = filtered.filter((t) => t.date >= startDate);
-    }
-    if (endDate) {
-      filtered = filtered.filter((t) => t.date <= endDate);
-    }
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter((t) => t.payment_status === selectedStatus);
-    }
-
-    setFilteredTransactions(filtered);
-  };
-
-  const handleStatusFilter = (status: string) => {
-    setSelectedStatus(status);
-    let filtered = transactions;
-
-    if (status !== 'all') {
-      filtered = filtered.filter((t) => t.payment_status === status);
-    }
-    if (selectedVolume !== 'all') {
-      filtered = filtered.filter((t) => t.unit_volume === selectedVolume);
     }
     if (selectedTrucker !== 'all') {
       filtered = filtered.filter((t) => t.trucker_name === selectedTrucker);
@@ -258,24 +225,6 @@ export default function CashRecordsPage() {
                         {volume}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="statusFilter" className="w-20">
-                  Status:
-                </Label>
-                <Select
-                  value={selectedStatus}
-                  onValueChange={handleStatusFilter}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="PAID">Paid</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
